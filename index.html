@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Image Cropping with Cropper.js</title>
+    <!-- Include Cropper.js and its dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css" rel="stylesheet">
+</head>
+<body>
+    <input type="file" id="inputImages" multiple>
+    <br>
+    <div id="imageContainer"></div>
+    <button id="saveButton">Save Cropped Images</button>
+
+    <!-- Include Cropper.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs"></script>
+    <script>
+        var imageContainer = document.getElementById('imageContainer');
+        var croppers = [];
+
+        document.getElementById('inputImages').addEventListener('change', function (event) {
+            var files = event.target.files;
+            var reader;
+
+            for (var i = 0; i < files.length; i++) {
+                reader = new FileReader();
+                reader.onload = createImageElementAndCropper;
+                reader.readAsDataURL(files[i]);
+            }
+        });
+
+        function createImageElementAndCropper(e) {
+            var image = new Image();
+            image.src = e.target.result;
+            image.style.maxWidth = '200px'; // Limit image width for display purposes
+            imageContainer.appendChild(image);
+
+            var cropper = new Cropper(image, {
+                aspectRatio: 16 / 9,
+            });
+
+            croppers.push(cropper);
+        }
+
+        document.getElementById('saveButton').addEventListener('click', function () {
+            var croppedImagesBase64 = [];
+
+            for (var i = 0; i < croppers.length; i++) {
+                var canvas = croppers[i].getCroppedCanvas();
+                croppedImagesBase64.push(canvas.toDataURL('image/jpeg'));
+            }
+
+            // Send the array of base64 encoded images to the backend
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:3000/uploadImages');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    console.log('Images uploaded successfully');
+                } else {
+                    console.error('Images upload failed');
+                }
+            };
+
+            xhr.send(JSON.stringify({ images: croppedImagesBase64, productName: "fucking product" }));
+        });
+    </script>
+</body>
+</html>
